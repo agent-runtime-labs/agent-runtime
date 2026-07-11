@@ -17,7 +17,8 @@ resource "aws_iam_policy" "common_ssm_parameter_access" {
           "ssm:GetParametersByPath"
         ]
         Resource = concat(
-          ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.id}:parameter${local.ssm_param_prefix}/*"]
+          ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.id}:parameter${local.ssm_param_prefix}/*"],
+          ["arn:aws:ssm:${data.aws_region.current.region}:${data.aws_caller_identity.current.id}:parameter/${var.env}/talent-mcp-server/*"]
         )
       }
     ]
