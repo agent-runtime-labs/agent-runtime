@@ -34,10 +34,11 @@ jobs:
     strategy:
       matrix:
         image:
-          - name: mcp-server-talent-kb
-            dockerfile: backend/mcp-servers/talent-kb/Dockerfile.lambda
+          - name: agent-runtime-orchestrator
+            dockerfile: backend/agents/orchestrator/Dockerfile
             context: backend
             platform: linux/amd64
+  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -113,7 +114,7 @@ jobs:
     needs: build-images
     with:
       environment: ${{ inputs.DEPLOYMENT_ENV }}
-      images: '["mcp-server-talent-kb"]'
+      images: '["agent-runtime-orchestrator"]'
       image_tag: ${{ inputs.IMAGE_TAG }}
       wait_seconds: 0
     secrets: inherit

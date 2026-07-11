@@ -10,7 +10,7 @@ on:
       images:
         description: >-
           JSON array of image names to collect ECR URLs for.
-          Example: '["mcp-server-talent-kb"]'
+          Example: '["agent-runtime-orchestrator"]'
         type: string
         required: true
       image_tag:
