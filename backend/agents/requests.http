@@ -1,0 +1,17 @@
+
+@host = http://localhost:8080
+@token = {{$dotenv BEARER_TOKEN}}
+
+### Ping the orchestrator agent
+GET {{host}}/ping
+Content-Type: application/json
+
+
+### Invoke the orchestrator agent
+POST {{host}}/invocations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "prompt": "Help me identify clinicians in ICU skill. Give me the name"
+}
