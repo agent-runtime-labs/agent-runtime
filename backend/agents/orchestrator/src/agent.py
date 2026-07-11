@@ -3,7 +3,7 @@ import uuid
 import json
 import threading
 from dataclasses import dataclass
-from agents import orchestrator_multi_agent
+from agents.orchestrator_multi_agent import orchestrator_multi_agent
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from utils import get_logger
 from dynamodb_utils import store_task_result

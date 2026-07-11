@@ -2,8 +2,29 @@
 import logging
 import os
 import sys
+from datetime import datetime
 
 _logging_configured = False
+
+
+class ISO8601Formatter(logging.Formatter):
+    """Custom formatter that outputs ISO8601 timestamps with milliseconds."""
+    
+    def format(self, record):
+        # Create ISO8601 timestamp with milliseconds
+        dt = datetime.fromtimestamp(record.created)
+        timestamp = dt.strftime('%Y-%m-%dT%H:%M:%S') + f'.{int(record.msecs):03d}Z'
+        
+        # Build JSON log entry
+        log_entry = {
+            "timestamp": timestamp,
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "logger": record.name
+        }
+        
+        import json
+        return json.dumps(log_entry)
 
 
 def configure_logging():
@@ -13,10 +34,7 @@ def configure_logging():
         return
 
     log_level = os.getenv('LOG_LEVEL', 'INFO')
-    formatter = logging.Formatter(
-        fmt='{"timestamp": "%(asctime)s", "level": "%(levelname)s", "message": "%(message)s", "logger": "%(name)s"}',
-        datefmt='%Y-%m-%dT%H:%M:%S.%fZ'
-    )
+    formatter = ISO8601Formatter()
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
     for handler in root_logger.handlers[:]:

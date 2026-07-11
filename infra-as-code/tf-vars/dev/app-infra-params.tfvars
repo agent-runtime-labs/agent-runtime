@@ -9,4 +9,4 @@ default_tags = {
   "deployment"  = "tf"
 }
 
-talent_kb_ssm_kb_id_path = "/dev/talent-knowledge-base/knowledge-base/tkb-kb-vector-index/id"
+talent_kb_ssm_kb_id_path = "/dev/talent-mcp-server/gateway-id"

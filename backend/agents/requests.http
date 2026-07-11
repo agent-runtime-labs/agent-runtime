@@ -13,5 +13,5 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-    "prompt": "HELLO"
+    "prompt": "Help me identify clinicians in ICU skill. Give me the name"
 }

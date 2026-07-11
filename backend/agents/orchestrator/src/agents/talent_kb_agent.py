@@ -16,7 +16,7 @@ Return concise answers with relevant skills, experience, certifications, availab
 
 def _create_talent_kb_agent(auth_header: str) -> Agent:
     """Builds the inner Agent that queries the Talent Knowledge Base MCP tool."""
-    mcp_client = _create_talent_kb_mcp_client(auth_header).start()
+    mcp_client = get_talent_kb_mcp_client(auth_header).start()
     return Agent(
         name="talent_kb_specialist",
         description="Specialist who analyzes talent knowledge base to provide insights and recommendations",
