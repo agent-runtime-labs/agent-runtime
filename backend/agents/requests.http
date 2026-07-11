@@ -1,6 +1,11 @@
 
 @host = http://localhost:8080
 @token = {{$dotenv BEARER_TOKEN}}
+@bedrockRegion = us-east-1
+@bedrockArn = {{$dotenv TALENT_AGENT_CORE_RUNTIME_ARN}}
+@escapedArn = arn%3Aaws%3Abedrock-agentcore%3Aus-east-1%3A756375699536%3Aruntime%2Fdev_ar_orchestrator-DktYiyHYt3
+@sessionId = 7fQ2kLwXaZ9pR3mNcVbT8dYs1JoU4iEhG
+@traceId = {{$randomInt 1000 9999}}
 
 ### Ping the orchestrator agent
 GET {{host}}/ping
@@ -14,4 +19,17 @@ Authorization: Bearer {{token}}
 
 {
     "prompt": "Help me identify clinicians in ICU skill. Give me the name"
+}
+
+
+### Invoke AWS Bedrock AgentCore Runtime
+POST https://bedrock-agentcore.{{bedrockRegion}}.amazonaws.com/runtimes/{{escapedArn}}/invocations?qualifier=DEFAULT
+Content-Type: application/json
+Authorization: Bearer {{token}}
+X-Amzn-Trace-Id: agent-trace-{{traceId}}
+X-Amzn-Bedrock-AgentCore-Runtime-Session-Id: {{sessionId}}
+
+{
+    "prompt": "Help me identify clinicians in ICU skill. Give me the name",
+    "extra_payload": {}
 }
