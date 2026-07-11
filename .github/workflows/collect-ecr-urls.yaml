@@ -1,0 +1,98 @@
+name: Collect ECR URLs (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment key as defined in env.yml (e.g. dev, stage, prod)"
+        type: string
+        required: true
+      images:
+        description: >-
+          JSON array of image names to collect ECR URLs for.
+          Example: '["mcp-server-talent-kb"]'
+        type: string
+        required: true
+      image_tag:
+        description: "Image tag to pass through as an output (e.g. github.sha or a version tag)"
+        type: string
+        required: false
+        default: ""
+      wait_seconds:
+        description: "Seconds to wait before collecting URLs"
+        type: number
+        required: false
+        default: 0
+    outputs:
+      artifact_name:
+        description: "Name of the uploaded artifact containing the base64-encoded ECR URLs JSON"
+        value: ${{ jobs.collect.outputs.artifact_name }}
+      image_tag:
+        description: "Image tag passed through from input"
+        value: ${{ jobs.collect.outputs.image_tag }}
+
+permissions: {}
+
+jobs:
+  collect:
+    name: "Collect ECR URLs (${{ inputs.environment }})"
+    runs-on: ubuntu-latest
+    environment:  ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      artifact_name: ${{ steps.build.outputs.artifact_name }}
+      image_tag: ${{ steps.build.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait before collecting (if configured)
+        if: ${{ inputs.wait_seconds > 0 }}
+        run: |
+          echo "Waiting ${{ inputs.wait_seconds }}s for resources to be available..."
+          sleep ${{ inputs.wait_seconds }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: github-sessions
+
+      - name: Build ECR URL map
+        id: build
+        env:
+          IMAGES_JSON: ${{ inputs.images }}
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          REGION="us-east-1"
+          ENV="${{ inputs.environment }}"
+          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
+
+          JSON_PARTS=()
+          while IFS= read -r IMAGE; do
+            ECR_URL="${REGISTRY}/${ENV}_${IMAGE}"
+            JSON_PARTS+=("\"${IMAGE}\":\"${ECR_URL}\"")
+            echo "  ${IMAGE} -> ${ECR_URL}"
+          done < <(echo "${IMAGES_JSON}" | jq -r '.[]')
+
+          JSON_STRING=$(IFS=,; echo "${JSON_PARTS[*]}")
+          ECR_URLS="{${JSON_STRING}}"
+          echo "ECR URLs: ${ECR_URLS}"
+
+          ECR_URLS_B64=$(echo -n "${ECR_URLS}" | base64 | tr -d '\n')
+          echo "${ECR_URLS_B64}" > ecr_urls.txt
+
+          ARTIFACT_NAME="ecr-urls-${{ github.run_id }}"
+          echo "artifact_name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "image_tag=${{ inputs.image_tag }}" >> $GITHUB_OUTPUT
+
+      - name: Upload ECR URLs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build.outputs.artifact_name }}
+          path: ecr_urls.txt
+          retention-days: 1

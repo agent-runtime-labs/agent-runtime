@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": "amazon-bedrock/global.anthropic.claude-haiku-4-5-20251001-v1:0",
+  // "model": "openai/gpt-5.5-fast",
+  // "small_model": "openai/gpt-5.5-fast",
+
+  "provider": {
+    "openai": {
+      "options": {
+        "reasoningEffort": "medium",
+        "reasoningSummary": "auto",
+        "textVerbosity": "low",
+        "store": false
+      }
+    }
+  },
+
+  "permission": {
+    "edit": "allow",
+    "bash": "allow",
+    "webfetch": "allow"
+  },
+
+  "instructions": [
+    "AGENTS.md"
+  ],
+
+  "skills": {
+    "paths": [
+      ".opencode/skills"
+    ]
+  },
+  "mcp" : {
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_PAT}"
+      }
+    }
+   
+  }
+}

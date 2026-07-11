@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: talent-kb-mcp-server
+  name: orchestrator-agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: talent-kb-mcp-server
+      app: orchestrator-agent
   template:
     metadata:
       labels:
-        app: talent-kb-mcp-server
+        app: orchestrator-agent
     spec:
       containers:
-        - name: talent-kb-mcp-server
-          image: talent-kb-mcp-server
+        - name: orchestrator-agent
+          image: orchestrator-agent
           ports:
-            - containerPort: 8000
+            - containerPort: 8080
           envFrom:
             - configMapRef:
                 name: shared-config
@@ -28,12 +28,14 @@ spec:
               memory: "512Mi"
               cpu: "500m"
           livenessProbe:
-            tcpSocket:
-              port: 8000
+            httpGet:
+              path: /ping
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
-            tcpSocket:
-              port: 8000
+            httpGet:
+              path: /ping
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 5

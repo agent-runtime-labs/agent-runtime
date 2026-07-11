@@ -1,0 +1,119 @@
+---
+name: Build and Push Docker Images
+on:
+  workflow_call:
+    inputs:
+      DEPLOYMENT_ENV:
+        required: true
+        type: string
+      IMAGE_TAG:
+        required: false
+        type: string
+        default: ${{ github.sha }}
+      PUSH_IMAGES:
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      image_tag:
+        description: "Docker image tag used for all images"
+        value: ${{ jobs.collect-outputs.outputs.image_tag }}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-images:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    environment:  ${{ inputs.DEPLOYMENT_ENV }}
+    outputs:
+      image_tag: ${{ steps.set-tag.outputs.tag }}
+
+    strategy:
+      matrix:
+        image:
+          - name: mcp-server-talent-kb
+            dockerfile: backend/mcp-servers/talent-kb/Dockerfile.lambda
+            context: backend
+            platform: linux/amd64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          TAG="${{ inputs.IMAGE_TAG }}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Using image tag: ${TAG}"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+          role-session-name: github-sessions
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get AWS Account ID
+        id: account
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "account_id=${ACCOUNT_ID}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU for cross-platform builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64,amd64
+
+      - name: Determine ECR repository name
+        id: ecr-repo
+        run: |
+          REPO_NAME="${{ inputs.DEPLOYMENT_ENV }}_${{ matrix.image.name }}"
+          echo "repo_name=${REPO_NAME}" >> $GITHUB_OUTPUT
+          echo "ECR Repository: ${REPO_NAME}"
+
+      - name: Create ECR repository if not exists
+        run: |
+          aws ecr describe-repositories --repository-names "${{ steps.ecr-repo.outputs.repo_name }}" 2>/dev/null || \
+          aws ecr create-repository \
+            --repository-name "${{ steps.ecr-repo.outputs.repo_name }}" \
+            --image-scanning-configuration scanOnPush=false \
+            --region us-east-1
+
+      - name: Build and push ${{ matrix.image.name }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.image.context }}
+          file: ${{ matrix.image.dockerfile }}
+          platforms: ${{ matrix.image.platform }}
+          push: ${{ inputs.PUSH_IMAGES }}
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repo.outputs.repo_name }}:${{ steps.set-tag.outputs.tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repo.outputs.repo_name }}:latest
+          cache-from: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repo.outputs.repo_name }}:buildcache
+          cache-to: type=registry,ref=${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repo.outputs.repo_name }}:buildcache,mode=max
+          provenance: false
+
+      - name: Output ECR URL
+        run: |
+          ECR_URL="${{ steps.login-ecr.outputs.registry }}/${{ steps.ecr-repo.outputs.repo_name }}"
+          echo "Built and pushed: ${ECR_URL}:${{ steps.set-tag.outputs.tag }}"
+
+  collect-outputs:
+    uses: ./.github/workflows/collect-ecr-urls.yaml
+    needs: build-images
+    with:
+      environment: ${{ inputs.DEPLOYMENT_ENV }}
+      images: '["mcp-server-talent-kb"]'
+      image_tag: ${{ inputs.IMAGE_TAG }}
+      wait_seconds: 0
+    secrets: inherit
