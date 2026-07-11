@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: talent-kb-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: talent-kb-mcp-server
+  template:
+    metadata:
+      labels:
+        app: talent-kb-mcp-server
+    spec:
+      containers:
+        - name: talent-kb-mcp-server
+          image: talent-kb-mcp-server
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: shared-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
