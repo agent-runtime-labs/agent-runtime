@@ -37,7 +37,7 @@ jobs:
           - name: agent-runtime-orchestrator
             dockerfile: backend/agents/orchestrator/Dockerfile
             context: backend
-            platform: linux/amd64
+            platform: linux/arm64
   
     steps:
       - name: Checkout code
