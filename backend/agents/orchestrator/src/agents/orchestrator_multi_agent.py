@@ -14,7 +14,7 @@ orchestrator_model = BedrockModel(
 
 
 def orchestrator_multi_agent(query: str, auth_header: str = ""):
-    """Create a fresh orchestrator agent per-request with auth_header baked into observability tools (mirrors swarm pattern)."""
+    """Create a fresh orchestrator agent per-request with auth_header"""
     talent_kb_tool = create_talent_kb_tool(auth_header)
     skills_plugin = AgentSkills(skills=_SKILLS_DIR)
     agent = Agent(
